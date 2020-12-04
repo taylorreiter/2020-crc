@@ -61,7 +61,8 @@ italy <- inner_join(ena, italy_metadata, by = c("sample_alias" = "id"))
 all_metadata <- bind_rows(crc1, crc2, crc3, japan, italy) %>% 
   filter(library_layout == "PAIRED")
 
+write_tsv(all_metadata, "inputs/metadata.tsv")
 tmp2 <- tmp %>%
   group_by(sample_alias) %>%
   tally()
-View(tmp2)
+
