@@ -1,7 +1,7 @@
 library(readr)
 library(dplyr)
 library(purrr)
-
+library(tidyr)
 setwd("github/2020-crc")
 
 # gather metadata ---------------------------------------------------------
@@ -61,8 +61,43 @@ italy <- inner_join(ena, italy_metadata, by = c("sample_alias" = "id"))
 all_metadata <- bind_rows(crc1, crc2, crc3, japan, italy) %>% 
   filter(library_layout == "PAIRED")
 
-write_tsv(all_metadata, "inputs/metadata.tsv")
+all_metadata %>% select(fastq_ftp)
+
 tmp2 <- tmp %>%
   group_by(sample_alias) %>%
   tally()
 
+
+# format download links ---------------------------------------------------
+
+# some fastq files have 3 download links, where the first one contains what is
+# probably a merged or interleaved file. Remove these from fastq download links. 
+# fastq 1 download:
+
+all_metadata <- separate(data = all_metadata, 
+                         col = fastq_ftp,
+                         into = c("fastq_ftp_1", "fastq_ftp_2", "fastq_ftp_3"), 
+                         sep = ";", remove = F, extra = "merge", fill = "right")
+
+fastq_1 <- vector()
+for(i in 1:length(all_metadata$fastq_ftp)){
+  if(grepl(pattern = "_1", x = all_metadata$fastq_ftp_1[i])){
+    fastq_1[i] <- all_metadata$fastq_ftp_1[i] 
+  } else {
+    fastq_1[i] <- all_metadata$fastq_ftp_2[i]
+  }
+}
+
+fastq_2 <- vector()
+for(i in 1:length(all_metadata$fastq_ftp)){
+  if(grepl(pattern = "_1", x = all_metadata$fastq_ftp_1[i])){
+    fastq_2[i] <- all_metadata$fastq_ftp_2[i] 
+  } else {
+    fastq_2[i] <- all_metadata$fastq_ftp_3[i]
+  }
+}
+
+all_metadata$fastq_ftp_1 <- fastq_1
+all_metadata$fastq_ftp_2 <- fastq_2
+
+write_tsv(all_metadata, "inputs/metadata.tsv")
